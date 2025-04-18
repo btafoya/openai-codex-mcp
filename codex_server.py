@@ -1,70 +1,112 @@
 #!/usr/bin/env python3
 """
 OpenAI Codex MCP Server for use with Claude Code.
-This server implements JSON-RPC 2.0 over HTTP to wrap the OpenAI Codex API.
+This server implements JSON-RPC 2.0 over HTTP to wrap the OpenAI Codex CLI.
 """
 
 import os
 import sys
-import dotenv
+import json
+import tempfile
+import subprocess
 from pathlib import Path
-from openai import OpenAI
+from typing import Dict, Any, Optional, List
 
-# Load environment variables from .env file
-dotenv.load_dotenv()
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 import uvicorn
 
-# Load API key from environment
-print("Checking for API key in environment...")
-api_key = os.getenv("OPENAI_API_KEY")
-print(f"Environment variables: {list(os.environ.keys())}")
-print(f"API key found: {bool(api_key)}")
-
-if not api_key:
-    # Try alternate approaches to get the API key
-    try:
-        # Try reading from a file
-        home = os.path.expanduser("~")
-        potential_paths = [
-            os.path.join(home, ".openai-key"),
-            os.path.join(home, ".openai", "api_key"),
-            os.path.join(home, ".config", "openai", "api_key")
-        ]
-        
-        for path in potential_paths:
-            if os.path.exists(path):
-                print(f"Trying to read API key from {path}")
-                with open(path, 'r') as f:
-                    api_key = f.read().strip()
-                if api_key:
-                    print(f"Successfully read API key from {path}")
-                    break
-    except Exception as e:
-        print(f"Error reading API key from file: {e}")
-    
-    if not api_key:
-        # Directly ask for the key
-        print("API key not found in environment or config files.")
-        print("Please enter your OpenAI API key:")
-        api_key = input("> ").strip()
-        
-        if not api_key:
-            raise RuntimeError("No API key provided. Please set the OPENAI_API_KEY environment variable.")
-
-# Initialize OpenAI client
-try:
-    client = OpenAI(api_key=api_key)
-except Exception as e:
-    print(f"Error initializing OpenAI client: {e}", file=sys.stderr)
-    raise
-
 app = FastAPI(
     title="OpenAI Codex MCP Server",
-    description="An MCP server to wrap the OpenAI Codex API for use with Claude Code",
+    description="An MCP server to wrap the OpenAI Codex CLI for use with Claude Code",
     version="0.1.0",
 )
+
+def run_codex(prompt: str, model: Optional[str] = None, 
+              images: Optional[List[str]] = None, quiet: bool = True,
+              additional_args: Optional[List[str]] = None) -> Dict[str, Any]:
+    """
+    Run the OpenAI Codex CLI tool with the given parameters.
+    
+    Args:
+        prompt: The prompt to send to Codex
+        model: The model to use (e.g., "o4-mini", "o4-preview")
+        images: List of image paths to include
+        quiet: Run in non-interactive mode
+        additional_args: Additional CLI arguments to pass to Codex
+        
+    Returns:
+        A dictionary containing the response from Codex
+    """
+    # Build command
+    cmd = ["codex"]
+    
+    # Add options
+    if quiet:
+        cmd.append("--quiet")
+    
+    if model:
+        cmd.extend(["--model", model])
+    
+    if images:
+        for image_path in images:
+            # For temp files received from Claude, save the content
+            if image_path.startswith("data:"):
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp:
+                    # Handle data URI format if needed
+                    if "base64," in image_path:
+                        import base64
+                        header, encoded = image_path.split(",", 1)
+                        image_data = base64.b64decode(encoded)
+                        temp.write(image_data)
+                        image_path = temp.name
+                    else:
+                        # Otherwise save as-is
+                        temp.write(image_path.encode())
+                        image_path = temp.name
+            
+            cmd.extend(["--image", image_path])
+    
+    if additional_args:
+        cmd.extend(additional_args)
+    
+    # Add the prompt
+    cmd.append(prompt)
+    
+    print(f"Executing command: {' '.join(cmd)}", file=sys.stderr)
+    
+    try:
+        # Run the command and capture output
+        result = subprocess.run(
+            cmd,
+            text=True,
+            capture_output=True,
+            check=True
+        )
+        
+        # Parse the output - for quiet mode, we get just the final output
+        output = result.stdout.strip()
+        
+        return {
+            "status": "success",
+            "output": output,
+            "stderr": result.stderr
+        }
+    except subprocess.CalledProcessError as e:
+        print(f"Error running codex: {e}", file=sys.stderr)
+        return {
+            "status": "error",
+            "error": str(e),
+            "output": e.stdout,
+            "stderr": e.stderr,
+            "exit_code": e.returncode
+        }
+    except Exception as e:
+        print(f"Unexpected error: {e}", file=sys.stderr)
+        return {
+            "status": "error",
+            "error": str(e)
+        }
 
 @app.post("/", summary="JSON-RPC endpoint")
 async def rpc(request: Request):
@@ -81,36 +123,27 @@ async def rpc(request: Request):
     if jsonrpc != "2.0" or not method or id_ is None:
         raise HTTPException(status_code=400, detail="Invalid JSON-RPC request")
 
-    if method == "complete":
+    # Log the request
+    print(f"Received request: method={method}, params={params}", file=sys.stderr)
+
+    if method == "codex_completion":
+        # Extract parameters
+        prompt = params.get("prompt", "")
+        model = params.get("model")
+        images = params.get("images", [])
+        additional_args = params.get("additional_args", [])
+        
+        if not prompt:
+            error = {"code": -32602, "message": "Missing required parameter: prompt"}
+            return JSONResponse({"jsonrpc": "2.0", "id": id_, "error": error}, status_code=400)
+        
         try:
-            # Extract parameters
-            model = params.get("model", "gpt-4o-mini")
-            prompt = params.get("prompt", "")
-            max_tokens = params.get("max_tokens", 150)
-            temperature = params.get("temperature", 0.7)
-            
-            # Create completion using the new OpenAI SDK
-            response = client.completions.create(
-                model=model,
+            result = run_codex(
                 prompt=prompt,
-                max_tokens=max_tokens,
-                temperature=temperature
+                model=model,
+                images=images,
+                additional_args=additional_args
             )
-            
-            # Convert response to dictionary
-            result = {
-                "id": response.id,
-                "object": "text_completion",
-                "created": response.created,
-                "model": response.model,
-                "choices": [
-                    {
-                        "text": choice.text,
-                        "index": choice.index,
-                        "finish_reason": choice.finish_reason
-                    } for choice in response.choices
-                ]
-            }
             
             return JSONResponse({"jsonrpc": "2.0", "id": id_, "result": result})
         except Exception as e:
@@ -121,7 +154,19 @@ async def rpc(request: Request):
         return JSONResponse({"jsonrpc": "2.0", "id": id_, "error": error}, status_code=404)
 
 def main():
+    # Check if codex is installed
+    try:
+        result = subprocess.run(["which", "codex"], capture_output=True, text=True)
+        if result.returncode != 0:
+            print("ERROR: 'codex' command not found in PATH", file=sys.stderr)
+            print("Please install the OpenAI Codex CLI: npm install -g @openai/codex", file=sys.stderr)
+            sys.exit(1)
+    except Exception as e:
+        print(f"Error checking for codex: {e}", file=sys.stderr)
+        sys.exit(1)
+        
     port = int(os.getenv("PORT", "8000"))
+    print(f"Starting Codex MCP server on port {port}")
     uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
 
 if __name__ == "__main__":
