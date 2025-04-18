@@ -185,16 +185,26 @@ curl -X POST http://localhost:8000/ \
 
 ### Available Models
 
-- `o4-mini`: Smaller, faster model suitable for most coding tasks
-- `o4-preview`: Standard OpenAI model with good balance of speed and capability
-- `o4-pro`: More powerful model for complex coding tasks
-- `o4-latest`: Always uses the latest available model version
+#### Reasoning Models (O-series)
+- `o4-mini`: Faster, more affordable reasoning model
+- `o3`: Most powerful reasoning model
+- `o3-mini`: A small model alternative to o3
+- `o1`: Previous full o-series reasoning model
+- `o1-mini`: A small model alternative to o1
+- `o1-pro`: Version of o1 with more compute for better responses
+
+#### GPT Models
+- `gpt-4.1`: Flagship GPT model for complex tasks
+- `gpt-4o`: Fast, intelligent, flexible GPT model
+- `gpt-4.1-mini`: Balanced for intelligence, speed, and cost
+- `gpt-4.1-nano`: Fastest, most cost-effective GPT-4.1 model
+- `gpt-4o-mini`: Fast, affordable small model for focused tasks
 
 ### Available Parameters
 
 #### General Completion (codex_completion)
 - `prompt` (required): The prompt to send to Codex
-- `model` (optional): The model to use (e.g., "o4-mini", "o4-preview", "o4-pro", "o4-latest")
+- `model` (optional): The model to use (e.g., "o4-mini", "o3", "gpt-4.1", "gpt-4o-mini")
 - `images` (optional): List of image paths or data URIs to include
 - `additional_args` (optional): Additional CLI arguments to pass to Codex
 
