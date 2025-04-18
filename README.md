@@ -6,6 +6,9 @@ An MCP server to wrap the OpenAI Codex CLI tool for use with Claude Code.
 
 This project provides a simple JSON-RPC server that allows Claude Code to interact with the OpenAI Codex CLI tool. This enables Claude Code to use OpenAI's models for code generation, explanation, and problem-solving when needed.
 
+## Video Deom
+https://www.loom.com/share/5d9532a79ae24b309af08c1727156f9c?sid=d9277b91-bf8c-43ec-a3c6-dc69fc52e1d2
+
 ## Prerequisites
 
 - Python 3.12+
