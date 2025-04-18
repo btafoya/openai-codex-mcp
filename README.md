@@ -29,6 +29,22 @@ After installation, the `codex_server` entrypoint is available in your PATH.
 
 ## Running the Server
 
+### Quick Start
+Use the provided setup script to automatically set up the environment and start the server:
+
+```bash
+./setup_and_run.sh
+```
+
+This script will:
+- Check for the `codex` CLI installation
+- Set up a Python virtual environment if needed
+- Install the MCP tool via the Claude CLI if available
+- Start the MCP server
+
+### Manual Start
+If you prefer to start the server manually:
+
 1. Make sure the Codex CLI is installed and properly configured with your OpenAI API key
 2. Start the server:
    ```bash
@@ -38,7 +54,23 @@ After installation, the `codex_server` entrypoint is available in your PATH.
 
 ## Integrating with Claude Code
 
-Once your MCP server is running, register it in Claude Code so that tasks can be routed through Codex:
+Once your MCP server is running, you can register it with Claude Code using either of these methods:
+
+### Method 1: Using the Claude CLI (Recommended)
+
+The repository includes a configuration file that can be installed directly using the Claude CLI:
+
+```bash
+# Install the MCP tool directly from the JSON config
+claude mcp add /path/to/openai_codex_mcp.json
+
+# Verify the tool was installed correctly
+claude mcp list
+```
+
+### Method 2: Manual Configuration via UI
+
+Alternatively, you can register the tool manually:
 
 1. In Claude Code, navigate to **Settings → Tools → Manage MCP Tools**.
 2. Create a new tool with:
