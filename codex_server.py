@@ -6,15 +6,52 @@ This server implements JSON-RPC 2.0 over HTTP to wrap the OpenAI Codex API.
 
 import os
 import sys
+import dotenv
+from pathlib import Path
 from openai import OpenAI
+
+# Load environment variables from .env file
+dotenv.load_dotenv()
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 import uvicorn
 
 # Load API key from environment
+print("Checking for API key in environment...")
 api_key = os.getenv("OPENAI_API_KEY")
+print(f"Environment variables: {list(os.environ.keys())}")
+print(f"API key found: {bool(api_key)}")
+
 if not api_key:
-    raise RuntimeError("Please set the OPENAI_API_KEY environment variable.")
+    # Try alternate approaches to get the API key
+    try:
+        # Try reading from a file
+        home = os.path.expanduser("~")
+        potential_paths = [
+            os.path.join(home, ".openai-key"),
+            os.path.join(home, ".openai", "api_key"),
+            os.path.join(home, ".config", "openai", "api_key")
+        ]
+        
+        for path in potential_paths:
+            if os.path.exists(path):
+                print(f"Trying to read API key from {path}")
+                with open(path, 'r') as f:
+                    api_key = f.read().strip()
+                if api_key:
+                    print(f"Successfully read API key from {path}")
+                    break
+    except Exception as e:
+        print(f"Error reading API key from file: {e}")
+    
+    if not api_key:
+        # Directly ask for the key
+        print("API key not found in environment or config files.")
+        print("Please enter your OpenAI API key:")
+        api_key = input("> ").strip()
+        
+        if not api_key:
+            raise RuntimeError("No API key provided. Please set the OPENAI_API_KEY environment variable.")
 
 # Initialize OpenAI client
 try:

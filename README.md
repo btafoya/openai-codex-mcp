@@ -12,8 +12,12 @@ This project uses a PEP‑621 `pyproject.toml`. Follow these steps:
 uv venv                     # creates a .venv/ directory
 source .venv/bin/activate   # on Windows: .\.venv\Scripts\activate
 
-# 2. Export your OpenAI API key (required for the server)
+# 2. Set up your OpenAI API key (required for the server)
+# Option A: Export to environment
 export OPENAI_API_KEY="your_openai_api_key"
+
+# Option B: Create a .env file in the project root
+echo "OPENAI_API_KEY=your_openai_api_key" > .env
 
 # 3. Install package and dependencies into the venv
 uv pip install .
@@ -22,10 +26,7 @@ After installation, the `codex_server` entrypoint is available in your PATH.
 
 ## Running the Server
 
-1. Ensure your venv is active and set your API key:
-   ```bash
-   export OPENAI_API_KEY="your_openai_api_key"
-   ```
+1. Ensure your venv is active and your API key is set (either in the environment or in a .env file).
 2. Start the server:
    ```bash
    codex_server
