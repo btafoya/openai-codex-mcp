@@ -5,14 +5,17 @@ An MCP server to wrap the OpenAI Codex API for use with Claude Code.
 
 Requires Python 3.7+.
 
-This project uses a PEP‑621 `pyproject.toml`. We recommend using the `uv` CLI to create and manage a virtual environment and install:
+This project uses a PEP‑621 `pyproject.toml`. Follow these steps:
 
 ```bash
 # 1. Create & activate a venv
 uv venv                     # creates a .venv/ directory
 source .venv/bin/activate   # on Windows: .\.venv\Scripts\activate
 
-# 2. Install package and dependencies
+# 2. Export your OpenAI API key (required for the server)
+export OPENAI_API_KEY="your_openai_api_key"
+
+# 3. Install package and dependencies into the venv
 uv pip install .
 ```
 After installation, the `codex_server` entrypoint is available in your PATH.
@@ -23,13 +26,15 @@ After installation, the `codex_server` entrypoint is available in your PATH.
    ```bash
    export OPENAI_API_KEY="your_openai_api_key"
    ```
-2. Start the server (reads `[tool.uvicorn]` from `pyproject.toml`):
+2. Start the server:
    ```bash
-   uv
+   codex_server
    ```
-   *Alternatively, launch directly via the console script:* `codex_server`
+   *Alternatively, use uvicorn directly:* `uvicorn codex_server:app`
 
 ## Integrating with Claude Code
+
+> **Note:** Use the `codex_server` command (or `uv` CLI) to start the MCP server, not `codex` (the official OpenAI CLI), which will not launch this server.
 
 Once your MCP server is running, register it in Claude Code so that tasks can automatically route through Codex:
 
@@ -48,5 +53,5 @@ Now, whenever you ask Claude Code to generate or complete code, it will transpar
 > ```bash
 > curl -X POST http://localhost:8000/ \
 >      -H 'Content-Type: application/json' \
->      -d '{"jsonrpc":"2.0","method":"complete","params":{"model":"o4-mini","prompt":"print(\"Hello, world!\")","max_tokens":64},"id":1}'
+>      -d '{"jsonrpc":"2.0","method":"complete","params":{"model":"gpt-4o-mini","prompt":"print(\"Hello, world!\")","max_tokens":64},"id":1}'
 > ```

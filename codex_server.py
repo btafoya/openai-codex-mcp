@@ -5,15 +5,23 @@ This server implements JSON-RPC 2.0 over HTTP to wrap the OpenAI Codex API.
 """
 
 import os
-import openai
+import sys
+from openai import OpenAI
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 import uvicorn
 
 # Load API key from environment
-openai.api_key = os.getenv("OPENAI_API_KEY")
-if not openai.api_key:
+api_key = os.getenv("OPENAI_API_KEY")
+if not api_key:
     raise RuntimeError("Please set the OPENAI_API_KEY environment variable.")
+
+# Initialize OpenAI client
+try:
+    client = OpenAI(api_key=api_key)
+except Exception as e:
+    print(f"Error initializing OpenAI client: {e}", file=sys.stderr)
+    raise
 
 app = FastAPI(
     title="OpenAI Codex MCP Server",
@@ -38,8 +46,35 @@ async def rpc(request: Request):
 
     if method == "complete":
         try:
-            response = openai.Completion.create(**params)
-            result = response.to_dict()
+            # Extract parameters
+            model = params.get("model", "gpt-4o-mini")
+            prompt = params.get("prompt", "")
+            max_tokens = params.get("max_tokens", 150)
+            temperature = params.get("temperature", 0.7)
+            
+            # Create completion using the new OpenAI SDK
+            response = client.completions.create(
+                model=model,
+                prompt=prompt,
+                max_tokens=max_tokens,
+                temperature=temperature
+            )
+            
+            # Convert response to dictionary
+            result = {
+                "id": response.id,
+                "object": "text_completion",
+                "created": response.created,
+                "model": response.model,
+                "choices": [
+                    {
+                        "text": choice.text,
+                        "index": choice.index,
+                        "finish_reason": choice.finish_reason
+                    } for choice in response.choices
+                ]
+            }
+            
             return JSONResponse({"jsonrpc": "2.0", "id": id_, "result": result})
         except Exception as e:
             error = {"code": -32000, "message": str(e)}
