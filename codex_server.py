@@ -126,18 +126,18 @@ async def rpc(request: Request):
     # Log the request
     print(f"Received request: method={method}, params={params}", file=sys.stderr)
 
-    if method == "codex_completion":
-        # Extract parameters
-        prompt = params.get("prompt", "")
-        model = params.get("model")
-        images = params.get("images", [])
-        additional_args = params.get("additional_args", [])
-        
-        if not prompt:
-            error = {"code": -32602, "message": "Missing required parameter: prompt"}
-            return JSONResponse({"jsonrpc": "2.0", "id": id_, "error": error}, status_code=400)
-        
-        try:
+    try:
+        if method == "codex_completion":
+            # Extract parameters
+            prompt = params.get("prompt", "")
+            model = params.get("model", "o4-mini")
+            images = params.get("images", [])
+            additional_args = params.get("additional_args", [])
+            
+            if not prompt:
+                error = {"code": -32602, "message": "Missing required parameter: prompt"}
+                return JSONResponse({"jsonrpc": "2.0", "id": id_, "error": error}, status_code=400)
+            
             result = run_codex(
                 prompt=prompt,
                 model=model,
@@ -146,12 +146,80 @@ async def rpc(request: Request):
             )
             
             return JSONResponse({"jsonrpc": "2.0", "id": id_, "result": result})
-        except Exception as e:
-            error = {"code": -32000, "message": str(e)}
-            return JSONResponse({"jsonrpc": "2.0", "id": id_, "error": error}, status_code=500)
-    else:
-        error = {"code": -32601, "message": f"Method '{method}' not found"}
-        return JSONResponse({"jsonrpc": "2.0", "id": id_, "error": error}, status_code=404)
+            
+        elif method == "write_code":
+            # Extract parameters
+            task = params.get("task", "")
+            language = params.get("language", "")
+            model = params.get("model", "o4-mini")
+            
+            if not task:
+                error = {"code": -32602, "message": "Missing required parameter: task"}
+                return JSONResponse({"jsonrpc": "2.0", "id": id_, "error": error}, status_code=400)
+                
+            if not language:
+                error = {"code": -32602, "message": "Missing required parameter: language"}
+                return JSONResponse({"jsonrpc": "2.0", "id": id_, "error": error}, status_code=400)
+                
+            # Build prompt for code generation
+            prompt = f"Write {language} code for the following task:\n\n{task}\n\nPlease provide only the code with helpful comments."
+            
+            result = run_codex(
+                prompt=prompt,
+                model=model
+            )
+            
+            return JSONResponse({"jsonrpc": "2.0", "id": id_, "result": result})
+            
+        elif method == "explain_code":
+            # Extract parameters
+            code = params.get("code", "")
+            model = params.get("model", "o4-mini")
+            
+            if not code:
+                error = {"code": -32602, "message": "Missing required parameter: code"}
+                return JSONResponse({"jsonrpc": "2.0", "id": id_, "error": error}, status_code=400)
+                
+            # Build prompt for code explanation
+            prompt = f"Explain the following code in detail, including what it does, how it works, and any notable patterns or algorithms used:\n\n```\n{code}\n```"
+            
+            result = run_codex(
+                prompt=prompt,
+                model=model
+            )
+            
+            return JSONResponse({"jsonrpc": "2.0", "id": id_, "result": result})
+            
+        elif method == "debug_code":
+            # Extract parameters
+            code = params.get("code", "")
+            issue_description = params.get("issue_description", "")
+            model = params.get("model", "o4-mini")
+            
+            if not code:
+                error = {"code": -32602, "message": "Missing required parameter: code"}
+                return JSONResponse({"jsonrpc": "2.0", "id": id_, "error": error}, status_code=400)
+                
+            # Build prompt for debugging
+            prompt = f"Debug the following code"
+            if issue_description:
+                prompt += f", which has the following issue: {issue_description}"
+            prompt += f":\n\n```\n{code}\n```\n\nPlease identify any bugs, explain them, and provide the corrected code."
+            
+            result = run_codex(
+                prompt=prompt,
+                model=model
+            )
+            
+            return JSONResponse({"jsonrpc": "2.0", "id": id_, "result": result})
+            
+        else:
+            error = {"code": -32601, "message": f"Method '{method}' not found"}
+            return JSONResponse({"jsonrpc": "2.0", "id": id_, "error": error}, status_code=404)
+            
+    except Exception as e:
+        error = {"code": -32000, "message": str(e)}
+        return JSONResponse({"jsonrpc": "2.0", "id": id_, "error": error}, status_code=500)
 
 def main():
     # Check if codex is installed

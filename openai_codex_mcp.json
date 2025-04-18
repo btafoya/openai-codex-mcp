@@ -18,7 +18,9 @@
         "model": {
           "type": "string",
           "description": "The model to use (e.g., 'o4-mini', 'o4-preview')",
-          "required": false
+          "required": false,
+          "enum": ["o4-mini", "o4-preview", "o4-pro", "o4-latest"],
+          "default": "o4-mini"
         },
         "images": {
           "type": "array",
@@ -47,15 +49,111 @@
           "description": "Status of the completion request (success or error)"
         }
       }
+    },
+    {
+      "name": "write_code",
+      "description": "Generate code for a specific task or problem",
+      "params": {
+        "task": {
+          "type": "string",
+          "description": "Description of the coding task",
+          "required": true
+        },
+        "language": {
+          "type": "string",
+          "description": "Programming language for the solution",
+          "required": true,
+          "enum": ["python", "javascript", "typescript", "java", "c", "cpp", "csharp", "go", "ruby", "rust", "php", "swift", "kotlin"]
+        },
+        "model": {
+          "type": "string",
+          "description": "The model to use",
+          "required": false,
+          "enum": ["o4-mini", "o4-preview", "o4-pro", "o4-latest"],
+          "default": "o4-mini"
+        }
+      },
+      "result": {
+        "output": {
+          "type": "string",
+          "description": "The generated code"
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the request"
+        }
+      }
+    },
+    {
+      "name": "explain_code",
+      "description": "Get an explanation of code functionality",
+      "params": {
+        "code": {
+          "type": "string",
+          "description": "The code to explain",
+          "required": true
+        },
+        "model": {
+          "type": "string",
+          "description": "The model to use",
+          "required": false,
+          "enum": ["o4-mini", "o4-preview", "o4-pro", "o4-latest"],
+          "default": "o4-mini"
+        }
+      },
+      "result": {
+        "output": {
+          "type": "string",
+          "description": "The explanation of the code"
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the request"
+        }
+      }
+    },
+    {
+      "name": "debug_code",
+      "description": "Find and fix bugs in code",
+      "params": {
+        "code": {
+          "type": "string",
+          "description": "The code to debug",
+          "required": true
+        },
+        "issue_description": {
+          "type": "string",
+          "description": "Description of the issue or error",
+          "required": false
+        },
+        "model": {
+          "type": "string",
+          "description": "The model to use",
+          "required": false,
+          "enum": ["o4-mini", "o4-preview", "o4-pro", "o4-latest"],
+          "default": "o4-mini"
+        }
+      },
+      "result": {
+        "output": {
+          "type": "string",
+          "description": "The debugging analysis and fix"
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the request"
+        }
+      }
     }
   ],
   "examples": [
     {
       "name": "Generate JavaScript sorting function",
       "description": "Ask Codex to write a JavaScript function for sorting",
-      "method": "codex_completion",
+      "method": "write_code",
       "params": {
-        "prompt": "Write a JavaScript function to sort an array of objects by a property value",
+        "task": "Write a function to sort an array of objects by a property value",
+        "language": "javascript",
         "model": "o4-mini"
       }
     },
@@ -66,6 +164,23 @@
       "params": {
         "prompt": "What's wrong with this code and how should I fix it?",
         "images": ["path/to/screenshot.png"]
+      }
+    },
+    {
+      "name": "Generate Fibonacci sequence",
+      "description": "Create a function that calculates Fibonacci numbers",
+      "method": "write_code",
+      "params": {
+        "task": "Write a function that calculates the first 100 Fibonacci numbers",
+        "language": "python"
+      }
+    },
+    {
+      "name": "Explain complex code",
+      "description": "Get an explanation of how code works",
+      "method": "explain_code",
+      "params": {
+        "code": "def quick_sort(arr):\n    if len(arr) <= 1:\n        return arr\n    pivot = arr[len(arr) // 2]\n    left = [x for x in arr if x < pivot]\n    middle = [x for x in arr if x == pivot]\n    right = [x for x in arr if x > pivot]\n    return quick_sort(left) + middle + quick_sort(right)"
       }
     }
   ],
