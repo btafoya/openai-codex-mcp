@@ -1,0 +1,70 @@
+# IDE, OS, and CLI
+CLAUDE.md
+.claude/
+.DS_Store
+.vscode/
+
+# Python virtual environments and cache
+.venv/
+venv/
+.env
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Testing and coverage
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Documentation
+docs/_build/
+
+# Git
+.git/
+.gitignore
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Scripts not needed in container
+setup_and_run.sh
+restart_server.sh
+
+# Environment templates
+.env.template

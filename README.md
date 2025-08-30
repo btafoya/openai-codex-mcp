@@ -74,6 +74,180 @@ If you prefer to start the server manually:
    ```
    *Alternatively, use uvicorn directly:* `uvicorn codex_server:app`
 
+## Running with Docker
+
+Docker provides an easy way to run the OpenAI Codex MCP server without having to install Python, Node.js, or the Codex CLI locally.
+
+### Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) installed
+- [Docker Compose](https://docs.docker.com/compose/install/) installed (optional, for easier management)
+- OpenAI API key
+
+### Quick Start with Docker Compose
+
+1. **Clone the repository** (if you haven't already):
+   ```bash
+   git clone <repository-url>
+   cd openai-codex-mcp
+   ```
+
+2. **Set up environment variables**:
+   ```bash
+   # Create a .env file with your OpenAI API key
+   echo "OPENAI_API_KEY=your_openai_api_key_here" > .env
+   ```
+
+3. **Start the service**:
+   ```bash
+   docker-compose up -d
+   ```
+
+4. **Check the status**:
+   ```bash
+   docker-compose ps
+   docker-compose logs -f codex-mcp
+   ```
+
+The server will be available at `http://localhost:8000`.
+
+### Building and Running with Docker Commands
+
+1. **Build the Docker image**:
+   ```bash
+   docker build -t openai-codex-mcp .
+   ```
+
+2. **Run the container**:
+   ```bash
+   docker run -d \
+     --name openai-codex-mcp \
+     -p 8000:8000 \
+     -e OPENAI_API_KEY=your_openai_api_key_here \
+     openai-codex-mcp
+   ```
+
+3. **Check container status**:
+   ```bash
+   docker ps
+   docker logs openai-codex-mcp
+   ```
+
+### Environment Variables
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `OPENAI_API_KEY` | Your OpenAI API key for the Codex CLI | - | Yes |
+| `PORT` | Port for the MCP server | `8000` | No |
+| `LOG_LEVEL` | Logging level | `info` | No |
+
+### Docker Troubleshooting
+
+#### Codex CLI Installation Issues
+
+If the container fails to install the OpenAI Codex CLI automatically (due to network restrictions or proxy settings), you can install it manually:
+
+```bash
+# Method 1: Install from outside the container
+docker exec -u root openai-codex-mcp npm install -g @openai/codex
+
+# Method 2: Access the container and install manually
+docker exec -it openai-codex-mcp /bin/bash
+# Inside container:
+npm install -g @openai/codex  # (may require sudo or running as root)
+```
+
+#### Network and SSL Issues
+
+In corporate environments with proxy servers or firewalls, you may encounter SSL certificate issues. Try these solutions:
+
+1. **Configure Docker to use your corporate proxy**:
+   ```bash
+   # Add to ~/.docker/config.json
+   {
+     "proxies": {
+       "default": {
+         "httpProxy": "http://proxy.company.com:8080",
+         "httpsProxy": "http://proxy.company.com:8080"
+       }
+     }
+   }
+   ```
+
+2. **Build with proxy arguments**:
+   ```bash
+   docker build \
+     --build-arg HTTP_PROXY=http://proxy.company.com:8080 \
+     --build-arg HTTPS_PROXY=http://proxy.company.com:8080 \
+     -t openai-codex-mcp .
+   ```
+
+3. **Use custom npm registry** (if available):
+   ```bash
+   docker exec -u root openai-codex-mcp npm config set registry http://your-internal-registry.com/
+   docker exec -u root openai-codex-mcp npm install -g @openai/codex
+   ```
+
+#### Checking Container Health
+
+```bash
+# Check if the MCP server is responding
+curl http://localhost:8000/
+
+# Check container health status
+docker inspect openai-codex-mcp --format='{{.State.Health.Status}}'
+
+# View detailed logs
+docker logs --details openai-codex-mcp
+```
+
+### Integrating Dockerized Version with Claude Code
+
+When using the Docker version, configure Claude Code to connect to the containerized MCP server:
+
+1. **Using Docker Compose** (recommended):
+   - Base URL: `http://localhost:8000/`
+   - The service will automatically restart if it fails
+
+2. **Using Docker run**:
+   - Base URL: `http://localhost:8000/`
+   - Make sure to use the `-d` flag to run in the background
+
+3. **For production deployments**:
+   - Consider using a reverse proxy (nginx, traefik) for SSL termination
+   - Use environment-specific configuration files
+   - Set up monitoring and log aggregation
+
+### Docker Management Commands
+
+```bash
+# Start the service
+docker-compose up -d
+
+# Stop the service
+docker-compose down
+
+# View logs
+docker-compose logs -f codex-mcp
+
+# Update the image
+docker-compose pull
+docker-compose up -d
+
+# Clean up (removes container and image)
+docker-compose down --rmi all --volumes --remove-orphans
+```
+
+### Production Deployment Considerations
+
+For production use, consider:
+
+1. **Security**: Use secrets management for the OpenAI API key
+2. **Monitoring**: Add health checks and monitoring
+3. **Scaling**: Use container orchestration (Kubernetes, Docker Swarm)
+4. **Persistence**: Mount volumes for any persistent data
+5. **Networking**: Use proper network segmentation and firewall rules
+
 ## Integrating with Claude Code
 
 Once your MCP server is running, you can register it with Claude Code using either of these methods:
